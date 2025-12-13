@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Прогноз Погоды</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='0.9em' font-size='90'>🌤️</text></svg>">
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -12,7 +13,6 @@
             <h1>🌤️ Прогноз Погоды</h1>
             <p>Powered by Open Meteo API</p>
         </div>
-
         <div class="search-section">
             <div class="search-box">
                 <input type="text" id="cityInput" placeholder="Введите название города (например: Бишкек, Москва, Лондон)" value="Бишкек">
@@ -20,12 +20,10 @@
             </div>
             <div class="history" id="historyContainer"></div>
         </div>
-
         <div id="errorContainer"></div>
         <div id="loadingContainer"></div>
         <div id="weatherContainer"></div>
     </div>
-
     <script src="script.js"></script>
 </body>
 </html>
