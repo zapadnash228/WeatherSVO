@@ -3,25 +3,24 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Weather App - Figma Design</title>
+    <title>Weather Pro</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div class="main-wrapper">
-        <div class="search-section">
-            <div class="search-box">
-                <input type="text" id="cityInput" placeholder="Введите название города..." value="Бишкек">
-                <button onclick="searchWeather()">Поиск</button>
+    <div class="main-container">
+        <div class="search-wrapper">
+            <div class="search-bar">
+                <input type="text" id="cityInput" placeholder="Поиск города..." value="Бишкек">
+                <button onclick="searchWeather()">Найти</button>
             </div>
-            <div class="history" id="historyContainer"></div>
+            <div class="history-tags" id="historyContainer"></div>
         </div>
 
-        <div id="errorContainer"></div>
         <div id="loadingContainer"></div>
-        
+        <div id="errorContainer"></div>
+
         <div id="weatherContainer"></div>
     </div>
-
     <script src="script.js"></script>
 </body>
 </html>
