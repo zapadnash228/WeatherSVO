@@ -317,6 +317,7 @@ body {
 }
 
 #errorContainer {
+    display: none;
     background: rgba(231, 76, 60, 0.8);
     padding: 15px 20px;
     border-radius: 15px;
