@@ -3,24 +3,30 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Weather Pro</title>
+    <title>Weather Pro - Прогноз погоды</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='80' font-size='80'>🌤️</text></svg>">
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <div class="main-container">
+        <div class="header">
+            <h1>🌤️ Weather Pro</h1>
+            <p>Powered by Open-Meteo API</p>
+        </div>
+
         <div class="search-wrapper">
             <div class="search-bar">
-                <input type="text" id="cityInput" placeholder="Поиск города..." value="Бишкек">
-                <button onclick="searchWeather()">Найти</button>
+                <input type="text" id="cityInput" placeholder="Введите название города (например: Бишкек, Москва, Лондон)" value="Бишкек">
+                <button onclick="searchWeather()">🔍 Поиск</button>
             </div>
             <div class="history-tags" id="historyContainer"></div>
         </div>
 
         <div id="loadingContainer"></div>
         <div id="errorContainer"></div>
-
         <div id="weatherContainer"></div>
     </div>
     <script src="script.js"></script>
 </body>
 </html>
+
