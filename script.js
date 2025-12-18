@@ -228,6 +228,7 @@ async function searchWeather() {
     
     loadingContainer.innerHTML = "<p style='text-align:center'>🔍 Загрузка...</p>";
     errorContainer.innerHTML = "";
+    errorContainer.style.display = "none";
     document.getElementById('weatherContainer').innerHTML = "";
 
     try {
