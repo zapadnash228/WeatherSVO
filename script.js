@@ -1,112 +1,122 @@
-let searchHistory = [];
+let history = [];
 
 async function searchWeather() {
     const city = document.getElementById('cityInput').value.trim();
     if (!city) return;
 
-    const weatherContainer = document.getElementById('weatherContainer');
-    const loadingContainer = document.getElementById('loadingContainer');
-    const errorContainer = document.getElementById('errorContainer');
-
-    errorContainer.innerHTML = '';
-    loadingContainer.innerHTML = '<div class="loading">Загрузка...</div>';
+    const container = document.getElementById('weatherContainer');
+    document.getElementById('loadingContainer').innerHTML = "<p style='text-align:center'>Загрузка...</p>";
 
     try {
-        const geoRes = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(city)}&count=1&language=ru&format=json`);
-        const geoData = await geoRes.json();
-
-        if (!geoData.results) throw new Error('Город не найден');
+        // 1. Геокодинг
+        const geo = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(city)}&count=1&language=ru&format=json`);
+        const geoData = await geo.json();
+        if (!geoData.results) throw new Error("Город не найден");
         const loc = geoData.results[0];
 
-        const wRes = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${loc.latitude}&longitude=${loc.longitude}&current=temperature_2m,relativehumidity_2m,precipitation,weathercode&daily=weathercode,temperature_2m_max,temperature_2m_min&timezone=auto`);
-        const weather = await wRes.json();
+        // 2. Получение ВСЕХ твоих данных (текущие, 24 часа, 7 дней)
+        const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${loc.latitude}&longitude=${loc.longitude}&current=temperature_2m,relativehumidity_2m,apparent_temperature,precipitation,weathercode,windspeed_10m&hourly=temperature_2m,weathercode,relativehumidity_2m&daily=weathercode,temperature_2m_max,temperature_2m_min,uv_index_max,sunrise,sunset&timezone=auto`);
+        const data = await res.json();
 
-        loadingContainer.innerHTML = '';
-        displayWeather(loc, weather);
-        saveHistory(loc.name);
-    } catch (e) {
-        loadingContainer.innerHTML = '';
-        errorContainer.innerHTML = `<div class="error">${e.message}</div>`;
+        document.getElementById('loadingContainer').innerHTML = "";
+        renderApp(loc, data);
+        updateHistory(loc.name);
+    } catch (err) {
+        document.getElementById('loadingContainer').innerHTML = "";
+        document.getElementById('errorContainer').innerHTML = `<p style='color:#ff7675'>${err.message}</p>`;
     }
 }
 
-function displayWeather(loc, weather) {
+function renderApp(loc, data) {
     const container = document.getElementById('weatherContainer');
-    
-    // Форматирование даты
     const now = new Date();
-    const days = ['Воскресенье', 'Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота'];
-    const months = ['янв', 'фев', 'мар', 'апр', 'мая', 'июн', 'июл', 'авг', 'сен', 'окт', 'ноя', 'дек'];
     
-    const dayName = days[now.getDay()];
-    const fullDate = `${now.getDate()} ${months[now.getMonth()]} ${now.getFullYear()}`;
+    // Твой почасовой прогноз (24 часа)
+    const currentHour = now.getHours();
+    let hourlyHTML = "";
+    for(let i = 0; i < 24; i++) {
+        const idx = currentHour + i;
+        hourlyHTML += `
+            <div class="hour-pill">
+                <div style="font-size: 12px; opacity: 0.6; margin-bottom: 5px">${idx % 24}:00</div>
+                <div style="font-size: 20px">${getEmoji(data.hourly.weathercode[idx])}</div>
+                <div style="font-weight: 700; margin-top: 5px">${Math.round(data.hourly.temperature_2m[idx])}°</div>
+            </div>`;
+    }
 
-    // Прогноз на 4 дня
-    const miniForecast = weather.daily.time.slice(0, 4).map((date, i) => {
-        const d = new Date(date);
-        const daySh = ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'][d.getDay()];
-        return `
-            <li class="day-item ${i === 0 ? 'active' : ''}">
-                <div class="day-icon">${getWeatherEmoji(weather.daily.weathercode[i])}</div>
-                <div class="day-name-sh">${daySh}</div>
-                <div class="day-temp">${Math.round(weather.daily.temperature_2m_max[i])}°C</div>
-            </li>
-        `;
-    }).join('');
+    // Твой прогноз на 7 дней
+    const weeklyHTML = data.daily.time.map((time, i) => `
+        <div class="week-row">
+            <div style="width: 120px; font-weight: 600">${i === 0 ? 'Сегодня' : new Date(time).toLocaleDateString('ru', {weekday: 'long'})}</div>
+            <div style="font-size: 24px">${getEmoji(data.daily.weathercode[i])}</div>
+            <div style="flex: 1; margin-left: 20px; opacity: 0.6">${getDesc(data.daily.weathercode[i])}</div>
+            <div style="font-weight: 700">${Math.round(data.daily.temperature_2m_max[i])}° <span style="opacity:0.4; font-weight:400">/ ${Math.round(data.daily.temperature_2m_min[i])}°</span></div>
+        </div>
+    `).join('');
 
     container.innerHTML = `
-        <div class="weather-app">
-            <div class="left-side">
+        <div class="hero-card">
+            <div class="hero-left">
                 <div>
-                    <h2 class="day-name">${dayName}</h2>
-                    <p class="full-date">${fullDate}</p>
-                    <p class="loc-tag">📍 ${loc.name}, ${loc.country_code.toUpperCase()}</p>
+                    <h2 style="font-size: 30px">${new Date().toLocaleDateString('ru', {weekday: 'long'})}</h2>
+                    <p style="opacity: 0.8">${new Date().toLocaleDateString('ru', {day: 'numeric', month: 'long', year: 'numeric'})}</p>
+                    <p style="margin-top: 15px; font-weight: 600">📍 ${loc.name}, ${loc.country_code?.toUpperCase() || ''}</p>
                 </div>
                 <div>
-                    <h1 class="main-temp">${Math.round(weather.current.temperature_2m)}°C</h1>
-                    <p class="weather-desc">${getWeatherDescription(weather.current.weathercode)}</p>
+                    <div class="hero-temp">${Math.round(data.current.temperature_2m)}°C</div>
+                    <div class="hero-desc">${getDesc(data.current.weathercode)}</div>
                 </div>
             </div>
-            <div class="right-side">
-                <div class="stats-box">
-                    <div class="stat-item"><span>Precipitation</span><span class="stat-val">${weather.current.precipitation}%</span></div>
-                    <div class="stat-item"><span>Humidity</span><span class="stat-val">${weather.current.relativehumidity_2m}%</span></div>
-                    <div class="stat-item"><span>Wind</span><span class="stat-val">3 km/h</span></div>
+            <div class="hero-right">
+                <div class="hero-stats">
+                    <div class="info-row"><span>Влажность</span><span class="info-val">${data.current.relativehumidity_2m}%</span></div>
+                    <div class="info-row"><span>Ощущается как</span><span class="info-val">${Math.round(data.current.apparent_temperature)}°C</span></div>
+                    <div class="info-row"><span>Ветер</span><span class="info-val">${data.current.windspeed_10m} км/ч</span></div>
+                    <div class="info-row"><span>УФ-Индекс</span><span class="info-val">${data.daily.uv_index_max[0]}</span></div>
                 </div>
-                <ul class="days-list">${miniForecast}</ul>
-                <button class="loc-btn" onclick="document.getElementById('cityInput').focus()">Change Location</button>
+                <div class="mini-forecast">
+                    ${data.daily.time.slice(0, 4).map((t, i) => `
+                        <div class="mini-item ${i === 0 ? 'active' : ''}">
+                            <div style="font-size: 18px">${getEmoji(data.daily.weathercode[i])}</div>
+                            <div style="font-size: 10px; font-weight: 700; margin: 5px 0">${new Date(t).toLocaleDateString('ru', {weekday: 'short'})}</div>
+                            <div style="font-size: 13px">${Math.round(data.daily.temperature_2m_max[i])}°</div>
+                        </div>
+                    `).join('')}
+                </div>
+                <button class="history-item" style="width:100%; padding: 12px; border:none; background: linear-gradient(90deg, #74ebd5, #acb6e5); color:white; font-weight:700; margin-top:20px" onclick="document.getElementById('cityInput').focus()">СМЕНИТЬ ГОРОД</button>
             </div>
         </div>
+
+        <h3 class="section-title">24-часовой прогноз</h3>
+        <div class="hourly-container">${hourlyHTML}</div>
+
+        <h3 class="section-title">Прогноз на 7 дней</h3>
+        <div class="weekly-list">${weeklyHTML}</div>
     `;
 }
 
-function getWeatherEmoji(code) {
-    const codes = { 0: '☀️', 1: '🌤️', 2: '⛅', 3: '☁️', 45: '🌫️', 51: '🌦️', 61: '🌧️', 71: '🌨️', 95: '⛈️' };
-    return codes[code] || '☀️';
+function getEmoji(code) {
+    const table = { 0: '☀️', 1: '🌤️', 2: '⛅', 3: '☁️', 45: '🌫️', 61: '🌧️', 71: '🌨️', 95: '⛈️' };
+    return table[code] || '☀️';
 }
 
-function getWeatherDescription(code) {
-    const desc = { 0: 'Ясно', 1: 'Ясно', 2: 'Облачно', 3: 'Пасмурно', 45: 'Туман', 61: 'Дождь' };
-    return desc[code] || 'Солнечно';
+function getDesc(code) {
+    const table = { 0: 'Ясно', 1: 'Ясно', 2: 'Облачно', 3: 'Пасмурно', 45: 'Туман', 61: 'Дождь', 71: 'Снег', 95: 'Гроза' };
+    return table[code] || 'Солнечно';
 }
 
-function saveHistory(city) {
-    if (!searchHistory.includes(city)) {
-        searchHistory.unshift(city);
-        if (searchHistory.length > 5) searchHistory.pop();
-        updateHistoryUI();
+function updateHistory(name) {
+    if (!history.includes(name)) {
+        history.unshift(name);
+        if (history.length > 5) history.pop();
+        document.getElementById('historyContainer').innerHTML = history.map(c => `<div class="history-item" onclick="setCity('${c}')">${c}</div>`).join('');
     }
 }
 
-function updateHistoryUI() {
-    const container = document.getElementById('historyContainer');
-    container.innerHTML = searchHistory.map(city => `<div class="history-item" onclick="setCity('${city}')">${city}</div>`).join('');
-}
-
-function setCity(city) {
-    document.getElementById('cityInput').value = city;
+function setCity(c) {
+    document.getElementById('cityInput').value = c;
     searchWeather();
 }
 
-// Старт
+// Запуск при старте
 searchWeather();
